@@ -659,7 +659,7 @@ static so_default_dynlib default_dynlib[] = {
 	{ "glBindTexture", (uintptr_t)&glBindTexture },
 	{ "glBlendFunc", (uintptr_t)&glBlendFunc },
 	{ "glBufferData", (uintptr_t)&glBufferData },
-	{ "glClear", (uintptr_t)&glClear },
+	{ "glClear", (uintptr_t)&ret0 },
 	{ "glClearColor", (uintptr_t)&ret0 },
 	{ "glClearDepthf", (uintptr_t)&glClearDepthf },
 	{ "glColorPointer", (uintptr_t)&glColorPointer },
@@ -1011,6 +1011,7 @@ int32_t CallIntMethodV(void *env, void *obj, int methodID, uintptr_t *args) {
 			return 1;
 		}
 	case MO_GetPosition:
+		return video_get_current_time();
 	default:
 		break;
 	}
@@ -1098,6 +1099,7 @@ int CallBooleanMethodV(void *env, void *obj, int methodID, va_list args) {
 	}
 }
 
+uint8_t close_movie = 0;
 void CallVoidMethodV(void *env, void *obj, int methodID, uintptr_t *args) {
 	switch (methodID) {
 	case UI_StartEditText:
@@ -1109,7 +1111,7 @@ void CallVoidMethodV(void *env, void *obj, int methodID, uintptr_t *args) {
 		break;
 	case MO_ReleaseMovie:
 		if (has_movie)
-			video_close();
+			close_movie = 1;
 		break;
 	case MO_SetVolume:
 		video_set_volume(args[0]);
@@ -1182,14 +1184,14 @@ void setup_2d_draw_rotated(float *bg_attributes, float x, float y, float x2, flo
 	bg_attributes[11] = 0.0f;
 	vglVertexPointerMapped(3, bg_attributes);
 	
-	bg_attributes[12] = 1.0f;
-	bg_attributes[13] = 1.0f;
-	bg_attributes[14] = 1.0f;
-	bg_attributes[15] = 0.0f;
-	bg_attributes[16] = 0.0f;
-	bg_attributes[17] = 1.0f;
-	bg_attributes[18] = 0.0f;
-	bg_attributes[19] = 0.0f;
+	bg_attributes[12] = 0.0f;
+	bg_attributes[13] = 0.0f;
+	bg_attributes[14] = 0.0f;
+	bg_attributes[15] = 1.0f;
+	bg_attributes[16] = 1.0f;
+	bg_attributes[17] = 0.0f;
+	bg_attributes[18] = 1.0f;
+	bg_attributes[19] = 1.0f;
 	vglTexCoordPointerMapped(&bg_attributes[12]);
 	
 	uint16_t *bg_indices = (uint16_t*)&bg_attributes[20];
@@ -1264,6 +1266,21 @@ void *real_main(void *argv) {
 	scePowerSetBusClockFrequency(222);
 	scePowerSetGpuClockFrequency(222);
 	scePowerSetGpuXbarClockFrequency(166);
+	
+	uint32_t platform =  sceKernelGetModelForCDialog();
+	printf("Platform: %x\n", platform);
+	uint32_t force_landscape = platform == 0x20000 ? 1 : 0;
+	if (!force_landscape) {
+		SceAppUtilAppEventParam eventParam;
+		sceClibMemset(&eventParam, 0, sizeof(SceAppUtilAppEventParam));
+		sceAppUtilReceiveAppEvent(&eventParam);
+		if (eventParam.type == 0x05) {
+			char buffer[2048];
+			sceAppUtilAppEventParseLiveArea(&eventParam, buffer);
+			if (strstr(buffer, "landscape"))
+				force_landscape = 1;
+		}
+	}
 
 	if (check_kubridge() < 0)
 		fatal_error("Error kubridge.skprx is not installed.");
@@ -1328,52 +1345,88 @@ void *real_main(void *argv) {
 	int (* render)(void *env, void *obj, int frame, int button, int touch_num, float touch_x1, float touch_y1, float touch_x2, float touch_y2) = (void *)so_symbol(&layton_mod, "render");
 	int (* OnLoad)(void *vm) = (void *)so_symbol(&layton_mod, "OnLoad");
 	
+	uint32_t *systemData = (uint8_t *)so_symbol(&layton_mod, "systemData");
+	
 	int cur_frame = 0;
 	OnLoad(fake_vm);
-	setViewSize(fake_env, NULL, SCREEN_H, SCREEN_W);
+	if (force_landscape)
+		setViewSize(fake_env, NULL, SCREEN_W, SCREEN_H);
+	else	
+		setViewSize(fake_env, NULL, SCREEN_H, SCREEN_W);
 	
 	GLuint main_fb, main_tex;
-	glGenTextures(1, &main_tex);
-	glBindTexture(GL_TEXTURE_2D, main_tex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCREEN_H, SCREEN_W, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	glGenFramebuffers(1, &main_fb);
-	glBindFramebuffer(GL_FRAMEBUFFER, main_fb);
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, main_tex, 0);
+	if (!force_landscape) {
+		glGenTextures(1, &main_tex);
+		glBindTexture(GL_TEXTURE_2D, main_tex);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCREEN_H, SCREEN_W, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		glGenFramebuffers(1, &main_fb);
+		glBindFramebuffer(GL_FRAMEBUFFER, main_fb);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, main_tex, 0);
+	}
 	
 	printf("Entering loop\n");
 	float *bg_attributes = (float*)malloc(sizeof(float) * 44);
 	uint32_t tick = sceKernelGetProcessTimeLow();
 	for (;;) {
-		uint32_t delta = sceKernelGetProcessTimeLow() - tick;
-		tick += delta;
-		glBindFramebuffer(GL_FRAMEBUFFER, main_fb);
-		glViewport(0, 0, SCREEN_H, SCREEN_W);
-		glScissor(0, 0, SCREEN_H, SCREEN_W);
-		glClearColor(0, 0, 0, 0);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glEnable(GL_SCISSOR_TEST);
 		SceTouchData touch;
 		sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch, 1);
-		render(fake_env, NULL, delta / 16667, 0, touch.reportNum > 2 ? 2 : touch.reportNum,
-			touch.report[0].y / 2, SCREEN_W - touch.report[0].x / 2,
-			touch.report[1].y / 2, SCREEN_W - touch.report[1].x / 2);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glEnable(GL_SCISSOR_TEST);
-		
-		glViewport(0, 0, SCREEN_W, SCREEN_H);
-		glScissor(0, 0, SCREEN_W, SCREEN_H);
-		if (has_movie) {
-			int w, h;
-			GLuint vid_tex = video_get_frame(&w, &h);
-			if (vid_tex != 0xDEADBEEF) {
-				glBindTexture(GL_TEXTURE_2D, vid_tex);
-				setup_2d_draw(&bg_attributes[22], 0.0f, 0.0f, SCREEN_W, SCREEN_H);
-				vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
+		uint32_t delta = sceKernelGetProcessTimeLow() - tick;
+		tick += delta;
+		if (force_landscape) {
+			glViewport(0, 0, SCREEN_W, SCREEN_H);
+			glScissor(0, 0, SCREEN_W, SCREEN_H);
+			glClear(GL_COLOR_BUFFER_BIT);
+			if (has_movie) {
+				// Forcing landscape mode when playing videos
+				int8_t *is_landscape = (int8_t *)(*systemData + 34580);
+				*is_landscape = 0;
+			
+				int w, h;
+				GLuint vid_tex = video_get_frame(&w, &h);
+				if (vid_tex != 0xDEADBEEF) {
+					glBindTexture(GL_TEXTURE_2D, vid_tex);
+					setup_2d_draw(&bg_attributes[22], 0.0f, 0.0f, SCREEN_W, SCREEN_H);
+					vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
+				}
 			}
+			render(fake_env, NULL, delta / 16667, 0, touch.reportNum > 2 ? 2 : touch.reportNum,
+				touch.report[0].x / 2, touch.report[0].y / 2,
+				touch.report[1].x / 2, touch.report[1].y / 2);
+		} else {
+			glBindFramebuffer(GL_FRAMEBUFFER, main_fb);
+			glViewport(0, 0, SCREEN_H, SCREEN_W);
+			glScissor(0, 0, SCREEN_H, SCREEN_W);
+			render(fake_env, NULL, delta / 16667, 0, touch.reportNum > 2 ? 2 : touch.reportNum,
+				SCREEN_H - touch.report[0].y / 2, touch.report[0].x / 2,
+				SCREEN_H - touch.report[1].y / 2, touch.report[1].x / 2);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glViewport(0, 0, SCREEN_W, SCREEN_H);
+			glScissor(0, 0, SCREEN_W, SCREEN_H);
+			glClear(GL_COLOR_BUFFER_BIT);
+			if (has_movie) {
+				// Forcing landscape mode when playing videos
+				int8_t *is_landscape = (int8_t *)(*systemData + 34580);
+				*is_landscape = 1;
+			
+				int w, h;
+				GLuint vid_tex = video_get_frame(&w, &h);
+				if (vid_tex != 0xDEADBEEF) {
+					glBindTexture(GL_TEXTURE_2D, vid_tex);
+					setup_2d_draw(&bg_attributes[22], 0.0f, 0.0f, SCREEN_W, SCREEN_H);
+					vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
+				}
+			}
+			glBindTexture(GL_TEXTURE_2D, main_tex);
+			setup_2d_draw_rotated(bg_attributes, 0.0f, 0.0f, SCREEN_W, SCREEN_H);
+			vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
 		}
-		glBindTexture(GL_TEXTURE_2D, main_tex);
-		setup_2d_draw_rotated(bg_attributes, 0.0f, 0.0f, SCREEN_W, SCREEN_H);
-		vglDrawObjects(GL_TRIANGLE_STRIP, 4, GL_TRUE);
 		vglSwapBuffers(has_edit_text);
+		
+		if (close_movie) {
+			video_close();
+			close_movie = 0;
+		}
 	}
 
 	return NULL;

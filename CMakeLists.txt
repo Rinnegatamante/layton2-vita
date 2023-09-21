@@ -11,7 +11,7 @@ endif()
 project(layton C CXX)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
 set(VITA_APP_NAME "Professor Layton: Diabolical Box HD")
-set(VITA_TITLEID  "LAYTON001")
+set(VITA_TITLEID  "LAYTON002")
 set(VITA_VERSION  "01.00")
 set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
 

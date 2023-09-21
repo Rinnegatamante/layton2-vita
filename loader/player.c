@@ -13,6 +13,10 @@ int audio_len;
 int audio_freq;
 int audio_mode;
 
+uint32_t current_timestamp = 0xFFFFFFFF;
+uint32_t current_tick = 0;
+#define AVPLAYER_BUG_TIMEFRAME 500000
+
 SceAvPlayerHandle movie_player;
 SceUID audio_thid;
 int player_state = PLAYER_INACTIVE;
@@ -122,6 +126,7 @@ void video_open(const char *path, off_t offs, size_t size) {
 	
 	video_offs = offs;
 	video_fsize = size;
+	current_timestamp = 0xFFFFFFFF;
 	
 	if (audio_port == -1)
 		video_audio_init();
@@ -151,12 +156,12 @@ void video_open(const char *path, off_t offs, size_t size) {
 	playerInit.fileReplacement.readOffset = video_read;
 	playerInit.fileReplacement.size = video_size; 
 
-	playerInit.basePriority = 0xA0;
+	playerInit.basePriority = 175;
 	playerInit.numOutputVideoFrameBuffers = 5;
 	playerInit.autoStart = 1;
-//#if DEBUG
+#if DEBUG
 	playerInit.debugLevel = 3;
-//#endif
+#endif
 
 	movie_player = sceAvPlayerInit(&playerInit);
 	sceAvPlayerAddSource(movie_player, "dummy.mp4");
@@ -176,6 +181,16 @@ uint32_t video_get_current_time() {
 GLuint video_get_frame(int *width, int *height) {
 	if (player_state == PLAYER_ACTIVE) {
 		if (sceAvPlayerIsActive(movie_player)) {
+			uint32_t cur_time = sceAvPlayerCurrentTime(movie_player);
+			if (cur_time != current_timestamp) {
+				current_timestamp = cur_time;
+			} else {
+				uint32_t tick = sceKernelGetProcessTimeLow();
+				if (tick - current_tick > AVPLAYER_BUG_TIMEFRAME) {
+					printf("ERROR: Lock Bug Detected on time %u\n", current_timestamp);
+				}
+				current_tick = tick;
+			}
 			SceAvPlayerFrameInfo frame;
 			if (sceAvPlayerGetVideoData(movie_player, &frame)) {
 				movie_frame_idx = (movie_frame_idx + 1) % 5;
@@ -209,6 +224,7 @@ void video_pause() {
 void video_resume() {
 	sceAvPlayerResume(movie_player);
 	player_state = PLAYER_ACTIVE;
+	current_tick = sceKernelGetProcessTimeLow();
 }
 
 void video_set_volume(float vol) {

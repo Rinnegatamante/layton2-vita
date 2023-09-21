@@ -6,4 +6,13 @@
 	<gate>
 		<startup-image>startup.png</startup-image>
 	</gate>
+	
+	<frame id="frame5" >
+        <liveitem>
+            <target>psla:landscape</target>
+			<text valign="bottom" align="left" text-align="left" word-wrap="off" ellipsis="on">
+				<str size="20" color="#ffffff" shadow="on">  Force landscape mode</str>
+			</text>
+        </liveitem>
+    </frame>
 </livearea>
