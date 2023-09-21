@@ -1345,7 +1345,7 @@ void *real_main(void *argv) {
 	int (* render)(void *env, void *obj, int frame, int button, int touch_num, float touch_x1, float touch_y1, float touch_x2, float touch_y2) = (void *)so_symbol(&layton_mod, "render");
 	int (* OnLoad)(void *vm) = (void *)so_symbol(&layton_mod, "OnLoad");
 	
-	uint32_t *systemData = (uint8_t *)so_symbol(&layton_mod, "systemData");
+	uint32_t *lt2_system_data = (uint8_t *)so_symbol(&layton_mod, "lt2_system_data");
 	
 	int cur_frame = 0;
 	OnLoad(fake_vm);
@@ -1379,7 +1379,7 @@ void *real_main(void *argv) {
 			glClear(GL_COLOR_BUFFER_BIT);
 			if (has_movie) {
 				// Forcing landscape mode when playing videos
-				int8_t *is_landscape = (int8_t *)(*systemData + 34580);
+				int8_t *is_landscape = (int8_t *)(*lt2_system_data + 0x102B1);
 				*is_landscape = 0;
 			
 				int w, h;
@@ -1397,6 +1397,7 @@ void *real_main(void *argv) {
 			glBindFramebuffer(GL_FRAMEBUFFER, main_fb);
 			glViewport(0, 0, SCREEN_H, SCREEN_W);
 			glScissor(0, 0, SCREEN_H, SCREEN_W);
+			glClear(GL_COLOR_BUFFER_BIT);
 			render(fake_env, NULL, delta / 16667, 0, touch.reportNum > 2 ? 2 : touch.reportNum,
 				SCREEN_H - touch.report[0].y / 2, touch.report[0].x / 2,
 				SCREEN_H - touch.report[1].y / 2, touch.report[1].x / 2);
@@ -1406,7 +1407,7 @@ void *real_main(void *argv) {
 			glClear(GL_COLOR_BUFFER_BIT);
 			if (has_movie) {
 				// Forcing landscape mode when playing videos
-				int8_t *is_landscape = (int8_t *)(*systemData + 34580);
+				int8_t *is_landscape = (int8_t *)(*lt2_system_data + 0x102B1);
 				*is_landscape = 1;
 			
 				int w, h;
