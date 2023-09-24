@@ -86,3 +86,5 @@ cmake .. && make
 ## Credits
 
 - TheFloW for the original .so loader.
+- CatoTheYounger for testing the homebrew and providing screenshots.
+- YogaBudiW for the Livearea assets.

@@ -10,7 +10,7 @@ endif()
 
 project(layton C CXX)
 include("${VITASDK}/share/vita.cmake" REQUIRED)
-set(VITA_APP_NAME "Professor Layton: Diabolical Box HD")
+set(VITA_APP_NAME "Professor Layton: Pandora's Box HD")
 set(VITA_TITLEID  "LAYTON002")
 set(VITA_VERSION  "01.00")
 set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12")
@@ -77,6 +77,7 @@ vita_create_vpk(layton.vpk ${VITA_TITLEID} eboot.bin
        ${CMAKE_SOURCE_DIR}/livearea/bg0.png sce_sys/livearea/contents/bg0.png
        ${CMAKE_SOURCE_DIR}/livearea/startup.png sce_sys/livearea/contents/startup.png
        ${CMAKE_SOURCE_DIR}/livearea/template.xml sce_sys/livearea/contents/template.xml
+       ${CMAKE_SOURCE_DIR}/livearea/pic0.png sce_sys/pic0.png
 )
 
 add_custom_target(copy
