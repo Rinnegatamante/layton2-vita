@@ -301,7 +301,7 @@ void *GetJNIEnv(void *this) {
 uint8_t FS_LoadFile(char *buf, const char *fname, int pos, int size) {
 	char full_fname[256];
 	sprintf(full_fname, "ux0:data/layton_pandora/assets/%s", fname);
-	printf("FS_LoadFile %s\n", full_fname);
+	//printf("FS_LoadFile %s\n", full_fname);
 	FILE *f = fopen(full_fname, "rb");
 	if (f) {
 		fseek(f, pos, SEEK_SET);
@@ -379,7 +379,7 @@ int munmap(void *addr, size_t length) {
 FILE *fopen_hook(char *fname, char *mode) {
 	if (strstr(fname, "main.obb") && mode[0] == 'w')
 		return NULL;
-	printf("opening %s %s\n", fname, mode);
+	//printf("opening %s %s\n", fname, mode);
 	return fopen(fname, mode);
 }
 
@@ -427,7 +427,7 @@ int nanosleep_hook(const struct timespec *req, struct timespec *rem) {
 FILE *AAssetManager_open(void *mgr, const char *fname, int mode) {
 	char full_fname[256];
 	sprintf(full_fname, "ux0:data/layton_pandora/assets/%s", fname);
-	printf("AAssetManager_open %s\n", full_fname);
+	//printf("AAssetManager_open %s\n", full_fname);
 	return fopen(full_fname, "rb");
 }
 
