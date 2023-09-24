@@ -1299,7 +1299,7 @@ void *real_main(void *argv) {
 	
 	vglSetSemanticBindingMode(VGL_MODE_SHADER_PAIR);
 	vglSetupGarbageCollector(127, 0x20000);
-	vglInitExtended(0, SCREEN_W, SCREEN_H, MEMORY_VITAGL_THRESHOLD_MB * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
+	vglInitWithCustomThreshold(0, SCREEN_W, SCREEN_H, MEMORY_VITAGL_THRESHOLD_MB * 1024 * 1024, 0, 20 * 1024 * 1024, 12 * 1024 * 1024, SCE_GXM_MULTISAMPLE_NONE);
 	sceSysmoduleLoadModule(SCE_SYSMODULE_AVPLAYER);
 	
 	memset(fake_vm, 'A', sizeof(fake_vm));
