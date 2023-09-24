@@ -38,7 +38,7 @@ In order to properly install the game, you'll have to follow these steps precise
 
 - **Optional**: Install [PSVshell](https://github.com/Electry/PSVshell/releases) to overclock your device to 500Mhz.
 - Install `libshacccg.suprx`, if you don't have it already, by following [this guide](https://samilops2.gitbook.io/vita-troubleshooting-guide/shader-compiler/extract-libshacccg.suprx).
-- Obtain your copy of *Professor Layton: Curious Village HD* legally for Android in form of an `.apk` file and an obb. [You can get all the required files directly from your phone](https://stackoverflow.com/questions/11012976/how-do-i-get-the-apk-of-an-installed-app-without-root-access) or by using an apk extractor you can find in the play store.
+- Obtain your copy of *Professor Layton: Pandora's Box HD* legally for Android in form of an `.apk` file and an obb. [You can get all the required files directly from your phone](https://stackoverflow.com/questions/11012976/how-do-i-get-the-apk-of-an-installed-app-without-root-access) or by using an apk extractor you can find in the play store.
 - Open the apk with your zip explorer and extract the file `libll2.so` from the `lib/armeabi-v7a` folder to `ux0:data/layton_pandora`. 
 - Extract the folder `assets` inside `ux0:data/layton_pandora`.
 - Extract the `obb` file in `ux0:data/layton_pandora/data` and rename the file `main.obb`.
